@@ -31,7 +31,10 @@ async def rate_limiter(request: Request, call_next):
             return JSONResponse(
                 status_code=429,
                 content={"detail": "rate limit exceeded"},
-                headers={"Retry-After": str(retry_after)},
+                headers={
+                    "Retry-After": str(retry_after),
+                    "Access-Control-Allow-Origin": "*",
+                },
             )
         bucket.append(now)
     return await call_next(request)
