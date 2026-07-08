@@ -8,9 +8,7 @@ from fastapi.responses import JSONResponse
 
 EMAIL = "24f3004855@ds.study.iitm.ac.in"
 ALLOWED_ORIGIN = "https://app-5tf8zq.example.com"
-# TODO: replace with the actual exam/grader page origin shown when you open
-# this question in your browser, so the grader's own fetch() calls succeed too.
-EXAM_PAGE_ORIGIN = "https://tds.s-anand.net"
+EXAM_PAGE_ORIGIN = "https://exam.sanand.workers.dev"
 
 BUCKET = 8
 WINDOW = 10
@@ -22,6 +20,7 @@ app.add_middleware(
     allow_origins=[ALLOWED_ORIGIN, EXAM_PAGE_ORIGIN],
     allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
 rate_buckets = defaultdict(list)
@@ -39,10 +38,14 @@ async def context_and_rate_limit(request: Request, call_next):
         while bucket and bucket[0] <= now - WINDOW:
             bucket.pop(0)
         if len(bucket) >= BUCKET:
+            origin = request.headers.get("origin")
+            headers = {"X-Request-ID": req_id}
+            if origin in (ALLOWED_ORIGIN, EXAM_PAGE_ORIGIN):
+                headers["Access-Control-Allow-Origin"] = origin
             return JSONResponse(
                 status_code=429,
                 content={"detail": "rate limit exceeded"},
-                headers={"X-Request-ID": req_id},
+                headers=headers,
             )
         bucket.append(now)
 
